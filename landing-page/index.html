@@ -24,7 +24,7 @@
               Basis Trade Agent is built for traders who know basis trades can outperform idle stablecoin yield, but do not want to babysit legging, funding flips, fee churn, and margin drift by hand. It watches GMX V2, waits for the right conditions, executes the trade, and keeps the whole decision trail visible.
             </p>
             <div class="hero-actions">
-              <a class="primary-button" href="./activity.html">See the agent live</a>
+              <button class="primary-button" type="button" data-open-activity>See the agent live</button>
               <a class="secondary-button" href="#how-it-works">Why this matters</a>
             </div>
             <div class="hero-badges">
@@ -180,9 +180,33 @@
             <h2>Own the edge without owning the stress.</h2>
             <p>Basis Trade Agent gives you the upside of a funding-driven BTC carry strategy with far less of the manual vigilance, friction, and execution anxiety that normally comes with it.</p>
           </div>
-          <a class="primary-button full-width" href="./activity.html">Open live activity</a>
+          <button class="primary-button full-width" type="button" data-open-activity>Open live activity</button>
         </section>
       </main>
+    </div>
+    <div class="activity-modal-overlay" id="activity-modal-overlay" hidden>
+      <div class="activity-modal" role="dialog" aria-modal="true" aria-labelledby="activity-modal-title">
+        <header class="activity-modal-header">
+          <div>
+            <p class="activity-kicker">Live execution feed</p>
+            <h2 id="activity-modal-title">Agent #1 thoughts</h2>
+            <p class="activity-subtitle">What the strategy is seeing, deciding, and doing right now.</p>
+          </div>
+          <div class="activity-controls">
+            <button class="button-lite" id="activity-refresh-button" type="button">Refresh now</button>
+            <button class="button-lite" id="activity-close-button" type="button">Close</button>
+          </div>
+        </header>
+        <div class="activity-meta-row">
+          <span class="activity-status" id="activity-feed-status">Waiting</span>
+          <span class="activity-meta" id="activity-last-updated">—</span>
+        </div>
+        <div class="terminal-feed-card">
+          <div class="terminal-feed" id="activity-terminal-feed">
+            <div class="empty-state">Waiting for the strategy loop to write activity.</div>
+          </div>
+        </div>
+      </div>
     </div>
     <script src="./app.js"></script>
   </body>
