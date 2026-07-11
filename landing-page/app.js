@@ -21,11 +21,11 @@ const terminalScript = [
   },
   {
     role: 'Agent',
-    text: 'Yes. I'll monitor funding, borrow drag, and margin health continuously. I wait for the trade to clear your bar before I move capital.',
+    text: "Yes. I'll monitor funding, borrow drag, and margin health continuously. I wait for the trade to clear your bar before I move capital.",
   },
   {
     role: 'User',
-    text: 'Good. Keep me conservative. Avoid fee churn. Don't let a few noisy rate flips wipe out the edge.',
+    text: "Good. Keep me conservative. Avoid fee churn. Don't let a few noisy rate flips wipe out the edge.",
   },
   {
     role: 'Agent',
@@ -33,10 +33,10 @@ const terminalScript = [
   },
   {
     role: 'System',
-    text: 'Monitoring live BTC basis conditions…
+    text: `Monitoring live BTC basis conditions…
 Comparing funding income versus borrow drag…
 Maintaining delta-neutral exposure…
-Adjusting posture as conditions evolve…',
+Adjusting posture as conditions evolve…`,
   },
   {
     role: 'Agent',
