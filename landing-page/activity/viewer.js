@@ -3,8 +3,10 @@ const lastUpdated = document.getElementById('last-updated');
 const feedStatus = document.getElementById('feed-status');
 const refreshButton = document.getElementById('refresh-button');
 const scrollButton = document.getElementById('scroll-button');
-const ACTIVITY_LOG_URL = '../activity.log';
 const REFRESH_INTERVAL_MS = 2000;
+const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const apiBaseUrl = isLocalHost ? '' : 'https://bta-api.yieldseeker.xyz';
+const activityLogUrl = isLocalHost ? '../activity.log' : `${apiBaseUrl}/activity.log`;
 let lastRawLog = null;
 
 function scrollToLatest() {
@@ -45,7 +47,7 @@ function renderFeed(logText) {
 
 async function refreshActivity() {
   try {
-    const response = await fetch(`${ACTIVITY_LOG_URL}?ts=${Date.now()}`, { cache: 'no-store' });
+    const response = await fetch(`${activityLogUrl}?ts=${Date.now()}`, { cache: 'no-store' });
     if (!response.ok) {
       throw new Error(`log HTTP ${response.status}`);
     }
@@ -58,7 +60,7 @@ async function refreshActivity() {
     }
     lastRawLog = logText;
   } catch (error) {
-    terminalFeed.innerHTML = `<div class="empty-state">Could not read the local activity feed yet.\n\n${error}</div>`;
+    terminalFeed.innerHTML = `<div class="empty-state">Could not read the activity feed yet.\n\n${error}</div>`;
     feedStatus.textContent = 'Waiting';
     lastUpdated.textContent = new Date().toLocaleTimeString();
   }

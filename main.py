@@ -7,7 +7,7 @@ from pathlib import Path
 from eth_defi.gmx.config import GMXConfig
 from eth_defi.token import fetch_erc20_details
 
-from basis_trade_agent.activity import get_activity_path
+from basis_trade_agent.activity import get_activity_path, get_shared_activity_log_path
 from basis_trade_agent.config import AgentConfig, load_config
 from basis_trade_agent.decision import Action, DecisionState, decide_action
 from basis_trade_agent.execution import ensure_approvals, execute_sequence
@@ -17,15 +17,15 @@ from basis_trade_agent.wallet import load_wallet_context
 
 log = logging.getLogger(__name__)
 IMMUTABLE_RUNTIME_CONFIG_FIELDS = ("chain", "targetAssetSymbol")
-ACTIVITY_LOG_PATH = Path("landing-page/activity.log")
 
 
 def configure_logging() -> None:
-    ACTIVITY_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    activityLogPath = get_shared_activity_log_path()
+    activityLogPath.parent.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
-        handlers=[logging.StreamHandler(), logging.FileHandler(ACTIVITY_LOG_PATH, mode="w")],
+        handlers=[logging.StreamHandler(), logging.FileHandler(activityLogPath, mode="w")],
         force=True,
     )
 

@@ -1,8 +1,21 @@
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-LANDING_PAGE_ACTIVITY_JSON_PATH = Path("landing-page/.agent_activity.json")
+DEFAULT_SHARED_RUNTIME_DIR = Path("landing-page")
+
+
+def get_shared_runtime_dir() -> Path:
+    return Path(os.environ.get("BASIS_TRADE_SHARED_DIR", str(DEFAULT_SHARED_RUNTIME_DIR)))
+
+
+def get_shared_activity_log_path() -> Path:
+    return get_shared_runtime_dir() / "activity.log"
+
+
+def get_shared_activity_json_path() -> Path:
+    return get_shared_runtime_dir() / ".agent_activity.json"
 
 
 def get_activity_path(configPath: Path) -> Path:
@@ -22,6 +35,7 @@ def read_activity(activityPath: Path) -> dict:
 
 
 def write_activity(activityPath: Path, activity: dict) -> None:
+    activityPath.parent.mkdir(parents=True, exist_ok=True)
     activityPath.write_text(json.dumps(activity, indent=2) + "\n")
 
 
@@ -31,5 +45,4 @@ def append_activity_event(activityPath: Path, event: dict) -> None:
     events.append({"timestamp": datetime.now(timezone.utc).isoformat(), **event})
     activity["events"] = events[-20:]
     write_activity(activityPath, activity)
-    LANDING_PAGE_ACTIVITY_JSON_PATH.parent.mkdir(parents=True, exist_ok=True)
-    write_activity(LANDING_PAGE_ACTIVITY_JSON_PATH, activity)
+    write_activity(get_shared_activity_json_path(), activity)

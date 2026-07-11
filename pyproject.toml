@@ -11,6 +11,8 @@ dependencies = [
     "pyyaml",
     "requests",
     "cryptography",
+    "fastapi",
+    "uvicorn",
 ]
 
 [dependency-groups]

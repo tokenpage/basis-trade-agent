@@ -1,0 +1,105 @@
+name: deploy
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'application.py'
+      - 'src/**'
+      - 'main.py'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'api.Dockerfile'
+      - 'worker.Dockerfile'
+      - '.github/workflows/api-deploy.yml'
+  workflow_dispatch:
+jobs:
+  api-deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_IMAGE: ghcr.io/${{ github.repository }}-api:latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Login to GitHub container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Build docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./api.Dockerfile
+          push: true
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+          tags: ${{ env.DOCKER_IMAGE }}
+  api-run:
+    needs: api-deploy
+    runs-on: ubuntu-latest
+    env:
+      NAME: basis-trade-agent-api
+      VERSION: ${{ github.sha }}
+      DOCKER_IMAGE: ghcr.io/${{ github.repository }}-api:latest
+    steps:
+      - name: executing remote ssh commands
+        uses: appleboy/ssh-action@v1.2.3
+        with:
+          host: ${{ secrets.YS_APPBOX_URL }}
+          username: ${{ secrets.YS_APPBOX_USER }}
+          key: ${{ secrets.YS_APPBOX_SSH_KEY }}
+          port: ${{ secrets.YS_APPBOX_PORT }}
+          envs: DOCKER_IMAGE,NAME,VERSION
+          script: |
+            set -e
+            url="bta-api.yieldseeker.xyz"
+            docker pull ${DOCKER_IMAGE}
+            docker stop ${NAME} && docker rm ${NAME} || true
+            docker run \
+              --name ${NAME} \
+              --detach \
+              --publish-all \
+              --restart on-failure \
+              --volume /home/ec2-user/basis-trade-agent-shared:/app/shared \
+              --env NAME=${NAME} \
+              --env VERSION=${VERSION} \
+              --env BASIS_TRADE_SHARED_DIR=/app/shared \
+              --env VIRTUAL_HOST=${url} \
+              --env VIRTUAL_PORT=5001 \
+              --env LETSENCRYPT_HOST=${url} \
+              --env-file ~/.${NAME}.vars \
+              ${DOCKER_IMAGE}
+  worker-run:
+    needs: api-deploy
+    runs-on: ubuntu-latest
+    env:
+      NAME: basis-trade-agent-worker
+      VERSION: ${{ github.sha }}
+      DOCKER_IMAGE: ghcr.io/${{ github.repository }}-api:latest
+    steps:
+      - name: executing remote ssh commands
+        uses: appleboy/ssh-action@v1.2.3
+        with:
+          host: ${{ secrets.YS_APPBOX_URL }}
+          username: ${{ secrets.YS_APPBOX_USER }}
+          key: ${{ secrets.YS_APPBOX_SSH_KEY }}
+          port: ${{ secrets.YS_APPBOX_PORT }}
+          envs: DOCKER_IMAGE,NAME,VERSION
+          script: |
+            set -e
+            docker pull ${DOCKER_IMAGE}
+            docker stop ${NAME} && docker rm ${NAME} || true
+            docker run \
+              --name ${NAME} \
+              --detach \
+              --restart on-failure \
+              --volume /home/ec2-user/basis-trade-agent-shared:/app/shared \
+              --env NAME=${NAME} \
+              --env VERSION=${VERSION} \
+              --env BASIS_TRADE_SHARED_DIR=/app/shared \
+              --env BASIS_TRADE_CONFIG_PATH=/app/shared/config.yaml \
+              --env-file ~/.basis-trade-agent-api.vars \
+              ${DOCKER_IMAGE} /bin/sh -lc 'uv run --active python main.py --config ${BASIS_TRADE_CONFIG_PATH}'
