@@ -6,7 +6,7 @@ const scrollButton = document.getElementById('scroll-button');
 const REFRESH_INTERVAL_MS = 2000;
 const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const apiBaseUrl = isLocalHost ? '' : 'https://bta-api.yieldseeker.xyz';
-const activityLogUrl = isLocalHost ? '../activity.log' : `${apiBaseUrl}/activity.log`;
+const activityLogUrl = isLocalHost ? './activity.log' : `${apiBaseUrl}/activity.log`;
 let lastRawLog = null;
 
 function scrollToLatest() {
