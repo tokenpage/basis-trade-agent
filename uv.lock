@@ -203,9 +203,11 @@ name = "basis-trade-agent"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "cryptography" },
     { name = "eth-account" },
     { name = "pydantic" },
     { name = "pyyaml" },
+    { name = "requests" },
     { name = "web3" },
     { name = "web3-ethereum-defi" },
 ]
@@ -218,9 +220,11 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "cryptography" },
     { name = "eth-account" },
     { name = "pydantic", specifier = ">=2" },
     { name = "pyyaml" },
+    { name = "requests" },
     { name = "web3" },
     { name = "web3-ethereum-defi" },
 ]

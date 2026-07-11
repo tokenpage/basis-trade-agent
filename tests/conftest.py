@@ -4,6 +4,9 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from pydantic import Field
+
+from basis_trade_agent.chat_tool import AgentRuntimeState, ChatTool, ChatToolInput
 
 
 class MockOrderResult:
@@ -95,3 +98,47 @@ def patch_target_asset_balance(monkeypatch: pytest.MonkeyPatch):
 @pytest.fixture
 def mock_gmx_config() -> SimpleNamespace:
     return SimpleNamespace(web3=SimpleNamespace(eth=SimpleNamespace(chain_id=42161)), chain="arbitrum")
+
+
+class MockGeminiLLM:
+    def __init__(self, responses: list[dict[str, Any]]) -> None:
+        self.responses = list(responses)
+        self.calls: list[dict[str, str]] = []
+
+    def get_next_step(self, systemPrompt: str, prompt: str) -> dict[str, Any]:
+        self.calls.append({"systemPrompt": systemPrompt, "prompt": prompt})
+        if not self.responses:
+            raise AssertionError("MockGeminiLLM ran out of scripted responses")
+        return self.responses.pop(0)
+
+
+@pytest.fixture
+def mock_gemini_llm():
+    def _make(responses: list[dict[str, Any]]) -> MockGeminiLLM:
+        return MockGeminiLLM(responses)
+
+    return _make
+
+
+class MockEchoToolInput(ChatToolInput):
+    text: str = ""
+
+
+class MockEchoTool(ChatTool):
+    resultText: str = "echoed"
+    executeInnerCalls: list[dict[str, Any]] = Field(default_factory=list)
+
+    def __init__(self, name: str = "mock_echo", resultText: str = "echoed") -> None:
+        super().__init__(name=name, description="Mock tool for tests.", paramsSchema=MockEchoToolInput, resultText=resultText, executeInnerCalls=[])
+
+    def execute_inner(self, runtimeState: AgentRuntimeState, params: MockEchoToolInput) -> str:
+        self.executeInnerCalls.append(params.model_dump())
+        return self.resultText
+
+
+@pytest.fixture
+def mock_echo_tool():
+    def _make(name: str = "mock_echo", resultText: str = "echoed") -> MockEchoTool:
+        return MockEchoTool(name=name, resultText=resultText)
+
+    return _make

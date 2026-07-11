@@ -9,6 +9,8 @@ dependencies = [
     "eth-account",
     "pydantic>=2",
     "pyyaml",
+    "requests",
+    "cryptography",
 ]
 
 [dependency-groups]

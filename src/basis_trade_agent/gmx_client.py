@@ -10,6 +10,8 @@ from eth_defi.gmx.order.swap_order import SwapOrder
 from eth_defi.token import fetch_erc20_details
 from web3.types import TxParams
 
+from basis_trade_agent.wallet import WalletContext
+
 GMX_SIZE_DELTA_PRECISION = 10**30
 GMX_MARKET_SYMBOL_OVERRIDES = {"WBTC": "BTC"}
 MAX_UINT256 = 2**256 - 1
@@ -200,3 +202,17 @@ class GmxClient:
             swap_path=[marketTokens.marketKey],
         )
         return [UnsignedOrder(label="close_short_atomic", transaction=decreaseResult.transaction, expectedEffect="position_closed")]
+
+
+def get_wallet_holdings(walletContext: WalletContext, marketTokens: MarketTokens) -> dict[str, float | str]:
+    ethBalanceWei = walletContext.web3.eth.get_balance(walletContext.account.address)
+    usdcDetails = fetch_erc20_details(walletContext.web3, marketTokens.usdcAddress, chain_id=walletContext.web3.eth.chain_id)
+    usdcBalanceRaw = usdcDetails.contract.functions.balanceOf(walletContext.account.address).call()
+    targetAssetDetails = fetch_erc20_details(walletContext.web3, marketTokens.targetAssetAddress, chain_id=walletContext.web3.eth.chain_id)
+    targetAssetBalanceRaw = targetAssetDetails.contract.functions.balanceOf(walletContext.account.address).call()
+    return {
+        "walletAddress": walletContext.account.address,
+        "ethBalance": ethBalanceWei / 10**18,
+        "usdcBalance": usdcBalanceRaw / 10**usdcDetails.decimals,
+        f"{targetAssetDetails.symbol}Balance": targetAssetBalanceRaw / 10**targetAssetDetails.decimals,
+    }

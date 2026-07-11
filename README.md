@@ -84,14 +84,22 @@ Once live, the agent operates as a continuous state-machine executing the follow
 
 ## Running Phase 1
 
-This project uses [direnv](https://direnv.net/): `.envrc` (gitignored, not committed) holds `BASIS_TRADE_WALLET_PRIVATE_KEY` and `ARBITRUM_RPC_URL` directly as `export` statements — there is no `.env` file.
+This project uses [direnv](https://direnv.net/): `.envrc` (gitignored, not committed) holds `BASIS_TRADE_WALLET_PRIVATE_KEY`, `ARBITRUM_RPC_URL`, and `GEMINI_API_KEY` directly as `export` statements — there is no `.env` file. `BASIS_TRADE_WALLET_PRIVATE_KEY` must be the Fernet-encrypted output of `yieldseeker-app/api/scripts/generate_evm_private_key.py` (not a raw hex key) — `wallet.py` decrypts it with a hardcoded password matching that script's convention.
 
 ```bash
 make setup                       # uv sync
 cp config.example.yaml config.yaml   # fill in real parameters
-$EDITOR .envrc                   # set BASIS_TRADE_WALLET_PRIVATE_KEY (ARBITRUM_RPC_URL has a public default)
-direnv allow
-make run                         # uv run python -m basis_trade_agent.main --config config.yaml
+make run                         # background trading loop: uv run python main.py --config config.yaml
 ```
 
 `make lint` / `make lint-fix` run ruff; `make test` runs pytest. See `scripts/probe_gmx_data.py` for a standing debug utility that dumps live GMX market/funding/position data for the configured chain.
+
+### Talking to the agent
+
+`make agent` (`uv run python agent.py`) starts an interactive CLI chat session backed by Gemini, using the same hand-rolled REST + JSON-tool-call pattern as `yieldseeker-app/api`'s `GeminiLLM`/`ChatBot` (no native Gemini function-calling SDK). It's read-only with respect to trading — it never places orders — but it can:
+
+* Answer questions about the agent wallet's current ETH/USDC/target-asset balances (`get_wallet_holdings`) and its currently open GMX position, if any (`get_current_position`) — current state only, no history.
+* Read the current trading config (`get_config`).
+* Update trading parameters in `config.yaml` on request (`update_config`) — e.g. "raise my minimum yield to 8%" or "switch to aggressive mode". Comments in `config.yaml` are preserved; invalid values are rejected without touching the file. The running `make run` loop picks up config changes on its next restart.
+
+`chain` and `targetAssetSymbol` can't be changed via chat (that requires re-resolving the GMX market and restarting the loop).

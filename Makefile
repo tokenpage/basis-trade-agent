@@ -1,16 +1,25 @@
-.PHONY: setup run lint lint-fix test
+install:
+	@ pip install uv
+	@ uv sync --active --all-extras
 
-setup:
-	uv sync
+install-updates:
+	@ pip install uv
+	@ uv sync --active --upgrade --refresh --all-extras
 
-run:
-	uv run python -m basis_trade_agent.main --config config.yaml
+list-outdated: install
+	@ pip list -o
+
+main:
+	uv run --active main.py --config config.yaml
+
+agent:
+	uv run --active agent.py
 
 lint:
-	uv run ruff check .
+	uv run --active ruff check .
 
 lint-fix:
-	uv run ruff check --fix . && uv run ruff format .
+	uv run --active ruff check --fix . && uv run ruff format .
 
 test:
-	uv run pytest
+	uv run --active pytest
