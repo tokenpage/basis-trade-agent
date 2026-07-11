@@ -68,6 +68,7 @@ def main() -> None:
     print("  Terminal 2: py main.py --config config.yaml")
     print("    - Watch the loop log 'reloaded config from disk' after the agent changes config.yaml")
     print("    - Then watch it move from action=none to action=enter and submit real GMX txs")
+    print("  After the position opens, return to Terminal 1 and ask: what's my current position? / what are my current holdings? / show me the recent activity")
 
 
 if __name__ == "__main__":

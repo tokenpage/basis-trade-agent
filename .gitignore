@@ -1,4 +1,5 @@
 .venv/
 .envrc
 config.yaml
+.agent_activity.json
 __pycache__/

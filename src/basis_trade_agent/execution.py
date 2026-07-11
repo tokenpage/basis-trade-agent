@@ -1,8 +1,10 @@
 import logging
 import time
+from pathlib import Path
 
 from web3.types import TxParams
 
+from basis_trade_agent.activity import append_activity_event, get_tx_explorer_url
 from basis_trade_agent.gmx_client import GmxClient, MarketTokens, UnsignedOrder
 from basis_trade_agent.wallet import WalletContext
 
@@ -17,14 +19,17 @@ def sign_and_send(walletContext: WalletContext, txParams: TxParams) -> str:
     return txHash.hex()
 
 
-def ensure_approvals(walletContext: WalletContext, gmxClient: GmxClient, tokenAmountsRaw: list[tuple[str, int]]) -> None:
+def ensure_approvals(walletContext: WalletContext, gmxClient: GmxClient, tokenAmountsRaw: list[tuple[str, int]], activityPath: Path) -> None:
     for tokenAddress, requiredAmountRaw in tokenAmountsRaw:
         approvalTx = gmxClient.build_approval_transaction_if_needed(tokenAddress, walletContext.account.address, requiredAmountRaw)
         if approvalTx is None:
             continue
         txHash = sign_and_send(walletContext, approvalTx)
-        log.info(f"submitted approval tx {txHash} for token {tokenAddress}")
+        txUrl = get_tx_explorer_url(walletContext.web3.eth.chain_id, txHash)
+        append_activity_event(activityPath, {"kind": "approval_submitted", "tokenAddress": tokenAddress, "txHash": txHash, "txUrl": txUrl})
+        log.info(f"submitted approval tx {txHash} ({txUrl}) for token {tokenAddress}")
         walletContext.web3.eth.wait_for_transaction_receipt(txHash)
+        append_activity_event(activityPath, {"kind": "approval_confirmed", "tokenAddress": tokenAddress, "txHash": txHash, "txUrl": txUrl})
 
 
 def wait_for_fill(
@@ -75,16 +80,30 @@ def execute_sequence(
     orders: list[UnsignedOrder],
     marketTokens: MarketTokens,
     timeoutSeconds: int,
+    activityPath: Path,
 ) -> bool:
     for index, order in enumerate(orders):
         txHash = sign_and_send(walletContext, order.transaction)
-        log.info(f"submitted order '{order.label}' tx {txHash}")
+        txUrl = get_tx_explorer_url(walletContext.web3.eth.chain_id, txHash)
+        append_activity_event(
+            activityPath,
+            {"kind": "order_submitted", "label": order.label, "expectedEffect": order.expectedEffect, "txHash": txHash, "txUrl": txUrl},
+        )
+        log.info(f"submitted order '{order.label}' tx {txHash} ({txUrl})")
         filled = wait_for_fill(walletContext, gmxClient, txHash, order.expectedEffect, marketTokens, timeoutSeconds)
         if not filled:
             remainingLabels = [remainingOrder.label for remainingOrder in orders[index + 1 :]]
+            append_activity_event(
+                activityPath,
+                {"kind": "order_timeout", "label": order.label, "expectedEffect": order.expectedEffect, "txHash": txHash, "txUrl": txUrl},
+            )
             log.critical(
-                f"order '{order.label}' tx {txHash} did not confirm expected effect '{order.expectedEffect}' within {timeoutSeconds}s; remaining unexecuted legs: {remainingLabels}"
+                f"order '{order.label}' tx {txHash} ({txUrl}) did not confirm expected effect '{order.expectedEffect}' within {timeoutSeconds}s; remaining unexecuted legs: {remainingLabels}"
             )
             return False
-        log.info(f"confirmed order '{order.label}' tx {txHash}")
+        append_activity_event(
+            activityPath,
+            {"kind": "order_confirmed", "label": order.label, "expectedEffect": order.expectedEffect, "txHash": txHash, "txUrl": txUrl},
+        )
+        log.info(f"confirmed order '{order.label}' tx {txHash} ({txUrl})")
     return True

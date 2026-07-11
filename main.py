@@ -7,6 +7,7 @@ from pathlib import Path
 from eth_defi.gmx.config import GMXConfig
 from eth_defi.token import fetch_erc20_details
 
+from basis_trade_agent.activity import get_activity_path
 from basis_trade_agent.config import AgentConfig, load_config
 from basis_trade_agent.decision import Action, DecisionState, decide_action
 from basis_trade_agent.execution import ensure_approvals, execute_sequence
@@ -50,6 +51,7 @@ def merge_runtime_config(startupConfig: AgentConfig, latestConfig: AgentConfig) 
 
 def run(configPath: Path) -> None:
     startupConfig = load_config(configPath)
+    activityPath = get_activity_path(configPath)
     walletContext = load_wallet_context()
     readConfig = GMXConfig(walletContext.web3)
     writeConfig = GMXConfig(walletContext.web3, user_wallet_address=walletContext.account.address)
@@ -65,6 +67,7 @@ def run(configPath: Path) -> None:
             (marketTokens.usdcAddress, approvalCheckThreshold),
             (marketTokens.targetAssetAddress, approvalCheckThreshold),
         ],
+        activityPath,
     )
     activeConfig = startupConfig
     state = DecisionState(positionOpenedAt=datetime.now(timezone.utc) if initialPosition is not None else None)
@@ -81,14 +84,20 @@ def run(configPath: Path) -> None:
             elif latestConfig != activeConfig:
                 log.info("reloaded config from disk")
             activeConfig = latestConfig
-            run_cycle(walletContext, activeConfig, gmxClient, marketTokens, state, rateHistory)
+            run_cycle(walletContext, activeConfig, gmxClient, marketTokens, state, rateHistory, activityPath)
         except Exception:
             log.critical("unhandled exception during cycle", exc_info=True)
         time.sleep(activeConfig.pollIntervalSeconds)
 
 
 def run_cycle(
-    walletContext, config: AgentConfig, gmxClient: GmxClient, marketTokens, state: DecisionState, rateHistory: RateHistory
+    walletContext,
+    config: AgentConfig,
+    gmxClient: GmxClient,
+    marketTokens,
+    state: DecisionState,
+    rateHistory: RateHistory,
+    activityPath: Path,
 ) -> None:
     now = datetime.now(timezone.utc)
     position = gmxClient.get_short_position(marketTokens, walletContext.account.address)
@@ -103,7 +112,7 @@ def run_cycle(
     )
     if action == Action.ENTER:
         orders = gmxClient.build_open_transactions(marketTokens, config.riskTolerance, config.startingCapitalUsdc, config.slippagePercent)
-        if execute_sequence(walletContext, gmxClient, orders, marketTokens, config.orderFillTimeoutSeconds):
+        if execute_sequence(walletContext, gmxClient, orders, marketTokens, config.orderFillTimeoutSeconds, activityPath):
             state.positionOpenedAt = now
             log.info("position opened successfully")
     elif action in (Action.CLOSE, Action.EMERGENCY_CLOSE):
@@ -113,7 +122,7 @@ def run_cycle(
         orders = gmxClient.build_close_transactions(
             marketTokens, position, config.riskTolerance, config.slippagePercent, walletContext.account.address
         )
-        if execute_sequence(walletContext, gmxClient, orders, marketTokens, config.orderFillTimeoutSeconds):
+        if execute_sequence(walletContext, gmxClient, orders, marketTokens, config.orderFillTimeoutSeconds, activityPath):
             state.positionOpenedAt = None
             log.info(f"position closed successfully ({action.value})")
 

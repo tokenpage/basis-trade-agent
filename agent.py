@@ -10,7 +10,7 @@ from basis_trade_agent.config import load_config
 from basis_trade_agent.gmx_client import GmxClient, resolve_market_and_tokens
 from basis_trade_agent.llm import GeminiLLM
 from basis_trade_agent.prompts import SYSTEM_PROMPT
-from basis_trade_agent.tools import GetConfigTool, GetCurrentPositionTool, GetWalletHoldingsTool, UpdateConfigTool
+from basis_trade_agent.tools import GetConfigTool, GetCurrentPositionTool, GetRecentActivityTool, GetWalletHoldingsTool, UpdateConfigTool
 from basis_trade_agent.wallet import load_wallet_context
 
 CHAT_MODEL_ID = "gemini-2.5-flash"
@@ -33,7 +33,7 @@ def main() -> None:
     runtimeState, systemPrompt = build_runtime_state(configPath)
     geminiApiKey = os.environ["GEMINI_API_KEY"]
     llm = GeminiLLM(apiKey=geminiApiKey, modelId=CHAT_MODEL_ID)
-    tools = [GetConfigTool(), UpdateConfigTool(), GetWalletHoldingsTool(), GetCurrentPositionTool()]
+    tools = [GetConfigTool(), UpdateConfigTool(), GetWalletHoldingsTool(), GetCurrentPositionTool(), GetRecentActivityTool()]
     chatBot = ChatBot(llm=llm, tools=tools)
     print(f"Basis Trade Agent ready. Wallet: {runtimeState.walletContext.account.address}. Market: {runtimeState.marketTokens.marketSymbol}. Ctrl+D to exit.")
     while True:

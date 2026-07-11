@@ -100,6 +100,7 @@ make main                        # background trading loop: uv run --active main
 
 * Answer questions about the agent wallet's current ETH/USDC/target-asset balances (`get_wallet_holdings`) and its currently open GMX position, if any (`get_current_position`) — current state only, no history.
 * Read the current trading config (`get_config`).
+* Show the most recent approval/order activity the live main loop recorded, including explorer links (`get_recent_activity`).
 * Update trading parameters in `config.yaml` on request (`update_config`) — e.g. "raise my minimum yield to 8%" or "switch to aggressive mode". Comments in `config.yaml` are preserved; invalid values are rejected without touching the file. The running `make main` loop picks up config changes on its next cycle.
 
 `chain` and `targetAssetSymbol` can't be changed via chat while `main.py` is already running (that requires re-resolving the GMX market and restarting the loop).
@@ -145,5 +146,6 @@ What you should see:
 5. After the position opens, go back to **Terminal 1** and ask:
 - `what's my current position?`
 - `what are my current holdings?`
+- `show me the recent activity`
 
 That gives you a complete before/after story in one recording: conversational config changes → live loop reacts → real on-chain position exists → conversational agent introspects the result.

@@ -1,3 +1,4 @@
+import json
 import shutil
 from pathlib import Path
 from types import SimpleNamespace
@@ -7,7 +8,7 @@ import yaml
 
 from basis_trade_agent.chat_tool import AgentRuntimeState, ChatTool, ChatToolInput
 from basis_trade_agent.gmx_client import ShortPosition
-from basis_trade_agent.tools import GetConfigTool, GetCurrentPositionTool, GetWalletHoldingsTool, UpdateConfigTool
+from basis_trade_agent.tools import GetConfigTool, GetCurrentPositionTool, GetRecentActivityTool, GetWalletHoldingsTool, UpdateConfigTool
 
 EXAMPLE_CONFIG_PATH = Path(__file__).resolve().parents[1] / "config.example.yaml"
 
@@ -86,6 +87,34 @@ def test_get_current_position_tool_reports_no_open_position(config_path: Path) -
     tool = GetCurrentPositionTool()
     result = tool.execute(runtimeState=make_runtime_state(config_path, gmxClient=gmxClient), params=tool.paramsSchema())
     assert result == "No position is currently open."
+
+@pytest.mark.parametrize("activity", [None, {"events": []}])
+def test_get_recent_activity_tool_reports_when_no_events_exist(config_path: Path, activity: dict | None) -> None:
+    activityPath = config_path.parent / ".agent_activity.json"
+    if activity is not None:
+        activityPath.write_text(json.dumps(activity))
+    tool = GetRecentActivityTool()
+    result = tool.execute(runtimeState=make_runtime_state(config_path), params=tool.paramsSchema())
+    assert result == "No recorded activity yet."
+
+
+def test_get_recent_activity_tool_returns_yaml_for_most_recent_events(config_path: Path) -> None:
+    activityPath = config_path.parent / ".agent_activity.json"
+    events = [
+        {
+            "kind": "order_confirmed",
+            "label": f"leg-{index}",
+            "txHash": f"0x{index:02x}",
+            "txUrl": f"https://arbiscan.io/tx/0x{index:02x}",
+        }
+        for index in range(10)
+    ]
+    activityPath.write_text(json.dumps({"events": events}))
+    tool = GetRecentActivityTool()
+    result = tool.execute(runtimeState=make_runtime_state(config_path), params=tool.paramsSchema())
+    parsed = yaml.safe_load(result)
+    assert [event["label"] for event in parsed] == [f"leg-{index}" for index in range(2, 10)]
+    assert parsed[-1]["txUrl"] == "https://arbiscan.io/tx/0x09"
 
 
 class MockRaisingToolInput(ChatToolInput):

@@ -2,6 +2,7 @@ from typing import Literal
 
 import yaml
 
+from basis_trade_agent.activity import get_activity_path, read_activity
 from basis_trade_agent.chat_tool import AgentRuntimeState, ChatTool, ChatToolInput
 from basis_trade_agent.config import load_config, update_config_file
 from basis_trade_agent.gmx_client import get_wallet_holdings
@@ -83,3 +84,23 @@ class GetCurrentPositionTool(ChatTool):
             "liquidationBufferPercent": liquidationBufferPercent,
         }
         return yaml.dump(positionData, default_flow_style=False, sort_keys=False)
+
+
+class GetRecentActivityInput(ChatToolInput):
+    pass
+
+
+class GetRecentActivityTool(ChatTool):
+    def __init__(self) -> None:
+        super().__init__(
+            name="get_recent_activity",
+            description="Returns the last few approval/order events the live main.py loop recorded, including explorer links for submitted and confirmed transactions.",
+            paramsSchema=GetRecentActivityInput,
+        )
+
+    def execute_inner(self, runtimeState: AgentRuntimeState, params: GetRecentActivityInput) -> str:  # noqa: ARG002
+        activity = read_activity(get_activity_path(runtimeState.configPath))
+        events = activity.get("events", [])
+        if not events:
+            return "No recorded activity yet."
+        return yaml.dump(events[-8:], default_flow_style=False, sort_keys=False)
