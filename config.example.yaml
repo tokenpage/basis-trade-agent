@@ -1,0 +1,14 @@
+# config.example.yaml
+chain: arbitrum
+targetAssetSymbol: WBTC
+startingCapitalUsdc: 1000.0
+minNetYieldAprPercent: 5.0         # user's target net yield; enter/exit thresholds are derived from this ± half the hysteresis band
+hysteresisBandAprPercent: 4.0      # gap between enterNetYieldAprPercent and exitNetYieldAprPercent; widen to reduce churn further
+netRateSmoothingWindowHours: 24    # rolling SMA window applied to the net rate before any entry/exit decision
+minimumHoldHours: 24               # non-emergency CLOSE is suppressed until the position has been open at least this long
+riskTolerance: conservative        # conservative (50/50) | aggressive (100/0)
+pollIntervalSeconds: 300
+slippagePercent: 0.5               # 0.5 = 0.5%
+liquidationBufferPercent: 15.0     # emergency-close if (|liqPrice-markPrice|/markPrice)*100 drops below this
+orderFillTimeoutSeconds: 120
+minEthReserve: 0.01
