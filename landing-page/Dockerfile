@@ -1,2 +1,2 @@
-FROM ghcr.io/kibalabs/app-serve:latest
+FROM nginx:alpine
 COPY . /usr/share/nginx/html
