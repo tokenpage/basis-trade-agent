@@ -101,7 +101,6 @@ body::before {
   background: rgba(255, 255, 255, 0.03);
 }
 
-.hero-section,
 .value-card,
 .story-card,
 .audience-card,
@@ -112,12 +111,8 @@ body::before {
 }
 
 .hero-section {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
-  gap: 26px;
-  padding: 30px;
+  padding: 54px 18px 34px;
   margin-top: 18px;
-  background: linear-gradient(180deg, rgba(8, 30, 15, 0.96), rgba(7, 12, 9, 0.98));
   position: relative;
   overflow: hidden;
 }
@@ -126,13 +121,16 @@ body::before {
   content: "";
   position: absolute;
   inset: 0;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-  background-size: 26px 26px;
-  opacity: 0.55;
+  border-radius: 30px;
+  background:
+    linear-gradient(180deg, rgba(8, 30, 15, 0.96), rgba(7, 12, 9, 0.98)),
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: auto, 26px 26px, 26px 26px;
+  border: 1px solid var(--line);
 }
 
-.hero-copy,
-.hero-visual {
+.hero-copy {
   position: relative;
   z-index: 1;
 }
@@ -210,102 +208,6 @@ body::before {
   padding: 9px 12px;
   color: #cfe9d5;
   font-size: 0.94rem;
-}
-
-.hero-visual {
-  min-height: 430px;
-}
-
-.hero-glow,
-.grid-orb {
-  position: absolute;
-  border-radius: 999px;
-}
-
-.hero-glow {
-  inset: 10% 0 0 14%;
-  background: radial-gradient(circle, rgba(122, 235, 143, 0.2), transparent 58%);
-  filter: blur(14px);
-}
-
-.hero-card {
-  position: absolute;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(8, 8, 8, 0.82);
-  border-radius: 20px;
-  padding: 20px;
-  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.28);
-}
-
-.hero-card strong,
-.value-number,
-.story-index {
-  letter-spacing: -0.05em;
-}
-
-.hero-card-primary {
-  top: 30px;
-  left: 12px;
-  width: 72%;
-}
-
-.hero-card-primary strong,
-.hero-card-metric strong {
-  display: block;
-  margin: 8px 0 10px;
-  font-size: 1.45rem;
-}
-
-.hero-card-primary p,
-.hero-card-metric p {
-  margin: 0;
-  color: var(--muted);
-}
-
-.hero-card-metric {
-  width: 44%;
-}
-
-.hero-card-metric strong {
-  font-size: 1.8rem;
-}
-
-.hero-card-metric:nth-of-type(2) {
-  top: 205px;
-  right: 32px;
-}
-
-.hero-card-metric:nth-of-type(3) {
-  bottom: 34px;
-  left: 70px;
-}
-
-.grid-orb-a {
-  width: 220px;
-  height: 220px;
-  right: -20px;
-  top: -16px;
-  background: radial-gradient(circle, rgba(122, 235, 143, 0.12), transparent 62%);
-}
-
-.grid-orb-b {
-  width: 180px;
-  height: 180px;
-  left: 10px;
-  bottom: 12px;
-  background: radial-gradient(circle, rgba(122, 235, 143, 0.09), transparent 60%);
-}
-
-.floating-card {
-  animation: floatY 7s ease-in-out infinite;
-}
-
-.floating-card.delay-1 {
-  animation-delay: 1.2s;
-}
-
-.floating-card.delay-2 {
-  animation-delay: 2.1s;
 }
 
 .ticker-section {
@@ -494,16 +396,6 @@ body::before {
   }
 }
 
-@keyframes floatY {
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
 @keyframes pulseBorder {
   0%,
   100% {
@@ -519,15 +411,11 @@ body::before {
     width: min(100vw - 28px, 1200px);
   }
 
-  .hero-section,
   .value-grid,
   .story-grid,
-  .audience-grid {
+  .audience-grid,
+  .hero-inline-metrics {
     grid-template-columns: 1fr;
-  }
-
-  .hero-visual {
-    min-height: 380px;
   }
 }
 
@@ -559,15 +447,43 @@ body::before {
   .cta-copy h2 {
     font-size: 2.6rem;
   }
+}
 
-  .hero-card-primary,
-  .hero-card-metric {
-    position: static;
-    width: auto;
-    margin-bottom: 14px;
-  }
 
-  .hero-visual {
-    min-height: auto;
-  }
+.hero-copy-full {
+  max-width: 860px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.hero-text-wide {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hero-copy-full .hero-actions,
+.hero-copy-full .hero-badges {
+  justify-content: center;
+}
+
+.hero-inline-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.hero-inline-metrics > div {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(6, 10, 7, 0.52);
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.hero-inline-metrics strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.35rem;
+  letter-spacing: -0.04em;
 }
