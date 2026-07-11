@@ -75,9 +75,10 @@ class GmxClient:
 
     def get_net_rate_apr_percent(self, marketTokens: MarketTokens) -> float:
         marketData = GMXMarketData(self.readConfig)
-        fundingApr = marketData.get_funding_apr()["short"][marketTokens.marketSymbol]
-        borrowApr = marketData.get_borrow_apr()["short"][marketTokens.marketSymbol]
-        return (fundingApr - borrowApr) * 100
+        fundingAprHourlyPercent = marketData.get_funding_apr()["short"][marketTokens.marketSymbol]
+        borrowAprHourlyPercent = marketData.get_borrow_apr()["short"][marketTokens.marketSymbol]
+        HOURS_PER_YEAR = 24 * 365
+        return (fundingAprHourlyPercent - borrowAprHourlyPercent) * HOURS_PER_YEAR
 
     def get_short_position(self, marketTokens: MarketTokens, walletAddress: str) -> ShortPosition | None:
         marketData = GMXMarketData(self.readConfig)

@@ -13,6 +13,7 @@ dependencies = [
     "cryptography",
     "fastapi",
     "uvicorn",
+    "ccxt>=4.5.64",
 ]
 
 [dependency-groups]
