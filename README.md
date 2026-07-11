@@ -100,20 +100,50 @@ make main                        # background trading loop: uv run --active main
 
 * Answer questions about the agent wallet's current ETH/USDC/target-asset balances (`get_wallet_holdings`) and its currently open GMX position, if any (`get_current_position`) — current state only, no history.
 * Read the current trading config (`get_config`).
-* Update trading parameters in `config.yaml` on request (`update_config`) — e.g. "raise my minimum yield to 8%" or "switch to aggressive mode". Comments in `config.yaml` are preserved; invalid values are rejected without touching the file. The running `make main` loop picks up config changes on its next restart.
+* Update trading parameters in `config.yaml` on request (`update_config`) — e.g. "raise my minimum yield to 8%" or "switch to aggressive mode". Comments in `config.yaml` are preserved; invalid values are rejected without touching the file. The running `make main` loop picks up config changes on its next cycle.
 
-`chain` and `targetAssetSymbol` can't be changed via chat (that requires re-resolving the GMX market and restarting the loop).
+`chain` and `targetAssetSymbol` can't be changed via chat while `main.py` is already running (that requires re-resolving the GMX market and restarting the loop).
 
 ### Recording a demo
 
-`demo.py` is a bounded, one-shot variant of `main.py`: it runs preflight checks, watches the live GMX net rate every `pollIntervalSeconds`, and — the moment a real entry signal fires — opens one real position and exits with a summary (tx links + position size/mark/liquidation price), instead of looping forever like `main.py`. Good for a recording since it has a natural end point.
+The demo flow is two terminals using the real agent and the real main loop — not a separate execution path.
+
+1. Fund the wallet with a small amount of **USDC** (not WBTC — `main.py` always starts from USDC and buys/converts the asset itself) plus a little ETH for gas on Arbitrum.
+2. Run the prep script once to put `config.yaml` into a demo-friendly state and confirm the wallet is flat:
 
 ```bash
-uv run --active python demo.py --config config.yaml
+uv run --active python prepare_demo.py --config config.yaml --starting-capital-usdc 5
 ```
 
-To get a reliable, fast entry during a recording session:
+3. In **Terminal 1**, start the conversational agent:
 
-1. Send a small amount of **USDC** (not the target asset — the agent buys/converts it itself) plus a little ETH for gas to the agent wallet (`demo.py` prints the wallet's Arbiscan link on startup).
-2. Copy `config.demo.example.yaml` to `config.yaml` (or pass `--config config.demo.example.yaml` directly) — it sets a small `startingCapitalUsdc` matching a small test deposit, an `enterNetYieldAprPercent` near zero so it clears whatever the live rate currently is, and a short `pollIntervalSeconds` so it doesn't sit idle on camera. Nothing about execution is simulated — it still submits real signed transactions to real GMX V2 contracts on Arbitrum mainnet.
-3. After `demo.py` reports the position opened, run `make agent` and ask "what's my current position?" — a good second beat for the recording, showing the conversational agent introspecting the same live on-chain state `demo.py` just created.
+```bash
+make agent
+```
+
+Use this exact runbook on camera:
+- `what are my current holdings?`
+- `what's my current position?`
+- `set starting capital to 5 dollars`
+- `set my minimum net yield to 0.01 percent`
+- `set my hysteresis band to 0.02 percent`
+- `set my smoothing window to 0.02 hours`
+- `set my poll interval to 15 seconds`
+- `show me my current config`
+
+4. In **Terminal 2**, start the live loop:
+
+```bash
+make main
+```
+
+What you should see:
+- first, a `reloaded config from disk` log line proving `main.py` picked up what you changed conversationally without a restart;
+- then per-cycle rate logs every 15s;
+- then, when the live smoothed GMX net rate clears the very low demo threshold, `action=enter` and real signed GMX tx hashes.
+
+5. After the position opens, go back to **Terminal 1** and ask:
+- `what's my current position?`
+- `what are my current holdings?`
+
+That gives you a complete before/after story in one recording: conversational config changes → live loop reacts → real on-chain position exists → conversational agent introspects the result.

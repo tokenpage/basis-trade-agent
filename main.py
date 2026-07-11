@@ -15,6 +15,7 @@ from basis_trade_agent.rates import RateHistory
 from basis_trade_agent.wallet import load_wallet_context
 
 log = logging.getLogger(__name__)
+IMMUTABLE_RUNTIME_CONFIG_FIELDS = ("chain", "targetAssetSymbol")
 
 
 def run_preflight_checks(walletContext, config: AgentConfig, usdcAddress: str, hasOpenPosition: bool) -> None:
@@ -29,15 +30,33 @@ def run_preflight_checks(walletContext, config: AgentConfig, usdcAddress: str, h
         raise RuntimeError(f"USDC balance {usdcBalance:.2f} is below the configured starting capital {config.startingCapitalUsdc}")
 
 
+def merge_runtime_config(startupConfig: AgentConfig, latestConfig: AgentConfig) -> AgentConfig:
+    immutableChanges = {
+        fieldName: getattr(latestConfig, fieldName)
+        for fieldName in IMMUTABLE_RUNTIME_CONFIG_FIELDS
+        if getattr(latestConfig, fieldName) != getattr(startupConfig, fieldName)
+    }
+    if immutableChanges:
+        log.warning(
+            f"ignoring runtime config changes to immutable fields {immutableChanges}; restart main.py to apply chain/target asset changes"
+        )
+    mutableUpdates = {
+        fieldName: value
+        for fieldName, value in latestConfig.model_dump().items()
+        if fieldName not in IMMUTABLE_RUNTIME_CONFIG_FIELDS
+    }
+    return startupConfig.model_copy(update=mutableUpdates)
+
+
 def run(configPath: Path) -> None:
-    config = load_config(configPath)
+    startupConfig = load_config(configPath)
     walletContext = load_wallet_context()
     readConfig = GMXConfig(walletContext.web3)
     writeConfig = GMXConfig(walletContext.web3, user_wallet_address=walletContext.account.address)
     gmxClient = GmxClient(readConfig=readConfig, writeConfig=writeConfig)
-    marketTokens = resolve_market_and_tokens(readConfig, config.targetAssetSymbol)
+    marketTokens = resolve_market_and_tokens(readConfig, startupConfig.targetAssetSymbol)
     initialPosition = gmxClient.get_short_position(marketTokens, walletContext.account.address)
-    run_preflight_checks(walletContext, config, marketTokens.usdcAddress, hasOpenPosition=initialPosition is not None)
+    run_preflight_checks(walletContext, startupConfig, marketTokens.usdcAddress, hasOpenPosition=initialPosition is not None)
     approvalCheckThreshold = MAX_UINT256 // 2
     ensure_approvals(
         walletContext,
@@ -47,17 +66,25 @@ def run(configPath: Path) -> None:
             (marketTokens.targetAssetAddress, approvalCheckThreshold),
         ],
     )
+    activeConfig = startupConfig
     state = DecisionState(positionOpenedAt=datetime.now(timezone.utc) if initialPosition is not None else None)
-    rateHistory = RateHistory(windowHours=config.netRateSmoothingWindowHours)
+    rateHistory = RateHistory(windowHours=activeConfig.netRateSmoothingWindowHours)
     log.info(
-        f"basis trade agent started: chain={config.chain} targetAsset={config.targetAssetSymbol} market={marketTokens.marketKey} riskTolerance={config.riskTolerance}"
+        f"basis trade agent started: chain={activeConfig.chain} targetAsset={activeConfig.targetAssetSymbol} market={marketTokens.marketKey} riskTolerance={activeConfig.riskTolerance}"
     )
     while True:
         try:
-            run_cycle(walletContext, config, gmxClient, marketTokens, state, rateHistory)
+            latestConfig = merge_runtime_config(startupConfig, load_config(configPath))
+            if latestConfig.netRateSmoothingWindowHours != activeConfig.netRateSmoothingWindowHours:
+                rateHistory = RateHistory(windowHours=latestConfig.netRateSmoothingWindowHours)
+                log.info(f"reloaded config: reset rate history for new smoothing window {latestConfig.netRateSmoothingWindowHours}h")
+            elif latestConfig != activeConfig:
+                log.info("reloaded config from disk")
+            activeConfig = latestConfig
+            run_cycle(walletContext, activeConfig, gmxClient, marketTokens, state, rateHistory)
         except Exception:
             log.critical("unhandled exception during cycle", exc_info=True)
-        time.sleep(config.pollIntervalSeconds)
+        time.sleep(activeConfig.pollIntervalSeconds)
 
 
 def run_cycle(
