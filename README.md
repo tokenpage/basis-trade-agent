@@ -106,6 +106,24 @@ make main                        # background trading loop: uv run --active main
 
 `chain` and `targetAssetSymbol` can't be changed via chat while `main.py` is already running (that requires re-resolving the GMX market and restarting the loop).
 
+### Talking to the deployed worker
+
+`bta.yieldseeker.xyz` (the landing page) and `bta-api.yieldseeker.xyz`'s co-located `basis-trade-agent-worker` container run continuously on the app box against `/home/ec2-user/basis-trade-agent-shared/config.yaml` (see `.github/workflows/api-deploy.yml`), independently of anything running locally. To have a live conversation that updates that *same* deployed worker's config (rather than a local file it never reads), SSH onto the app box and run `agent.py` in a one-off container against the same shared volume:
+
+```bash
+ssh ys-appbox
+docker run --rm -it \
+  --volume /home/ec2-user/basis-trade-agent-shared:/app/shared \
+  --env BASIS_TRADE_CONFIG_PATH=/app/shared/config.yaml \
+  --env-file ~/.basis-trade-agent-api.vars \
+  ghcr.io/tokenpage/basis-trade-agent-api:latest \
+  uv run --active python agent.py
+```
+
+This reuses the exact same deployed image and code path as the always-on worker — it's not a separate implementation. The container exits and is removed (`--rm`) when you `Ctrl+D`; the worker container itself is untouched and keeps running throughout.
+
+**Important:** this shares one real wallet with any local `make main` run using the same `.envrc`. Never run a local loop and the deployed worker against the same wallet at the same time — they can race on the same position/nonces. Check `docker ps` on the app box first if unsure whether the worker is already live.
+
 ### Recording a demo
 
 The demo flow is two terminals using the real agent and the real main loop — not a separate execution path.
