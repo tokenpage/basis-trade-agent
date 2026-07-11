@@ -23,7 +23,7 @@ body {
   min-height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: "Host Grotesk", Inter, system-ui, sans-serif;
+  font-family: Inter, system-ui, sans-serif;
 }
 
 body {
