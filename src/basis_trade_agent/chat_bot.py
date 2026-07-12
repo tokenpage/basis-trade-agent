@@ -49,6 +49,7 @@ class ChatBot:
                     currentContext += f"\nTool: invalid arguments for '{requestedToolName}': {exception}"
                     isComplete = False
                     continue
+                yield f"[{requestedToolName}] running..."
                 result = tool.execute(runtimeState=runtimeState, params=params)
                 resultMessage = f"{requestedToolName} complete, result: {result}"
                 yield f"[{requestedToolName}] {result}"

@@ -25,7 +25,7 @@ def test_execute_dispatches_tool_call_then_yields_final_message(mock_gemini_llm,
     ])
     chatBot = ChatBot(llm=llm, tools=[tool])
     events = list(chatBot.execute(systemPrompt="system", runtimeState=make_runtime_state(), userMessage="hi"))
-    assert events == ["[mock_echo] echoed", "Done"]
+    assert events == ["[mock_echo] running...", "[mock_echo] echoed", "Done"]
     assert tool.executeInnerCalls == [{"text": "ping"}]
     assert len(llm.calls) == 2
 
@@ -37,7 +37,7 @@ def test_execute_respects_max_tool_iterations_cap(mock_gemini_llm, mock_echo_too
     chatBot = ChatBot(llm=llm, tools=[tool])
     events = list(chatBot.execute(systemPrompt="system", runtimeState=make_runtime_state(), userMessage="hi"))
     assert len(llm.calls) == MAX_TOOL_ITERATIONS
-    assert len(events) == MAX_TOOL_ITERATIONS
+    assert len(events) == MAX_TOOL_ITERATIONS * 2
     assert len(tool.executeInnerCalls) == MAX_TOOL_ITERATIONS
 
 
